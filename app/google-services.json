@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "580626311365",
+    "project_id": "biotronica-test-3c3e7",
+    "storage_bucket": "biotronica-test-3c3e7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580626311365:android:08515a18795309fb74e8ac",
+        "android_client_info": {
+          "package_name": "no.nordicsemi.android.nrfthingy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "580626311365-hbi4bflquatnahkkcp9vu755etc81qvr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtDU_Ed3s5OXu87_e-9ftFA10PzV3k_Cw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "580626311365-hbi4bflquatnahkkcp9vu755etc81qvr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
