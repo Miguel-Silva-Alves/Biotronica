@@ -45,6 +45,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableString;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -52,8 +53,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.getkeepsafe.taptargetview.TapTarget;
 import com.getkeepsafe.taptargetview.TapTargetSequence;
@@ -68,10 +71,18 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.formatter.YAxisValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.utils.ViewPortHandler;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+import com.jjoe64.graphview.series.PointsGraphSeries;
 
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -84,6 +95,7 @@ import no.nordicsemi.android.nrfthingy.common.ScannerFragmentListener;
 import no.nordicsemi.android.nrfthingy.common.Utils;
 import no.nordicsemi.android.nrfthingy.database.DatabaseContract;
 import no.nordicsemi.android.nrfthingy.database.DatabaseHelper;
+import no.nordicsemi.android.nrfthingy.miguel.XYValue;
 import no.nordicsemi.android.nrfthingy.widgets.Renderer;
 import no.nordicsemi.android.thingylib.ThingyListener;
 import no.nordicsemi.android.thingylib.ThingyListenerHelper;
@@ -115,6 +127,21 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
     private LineChart mLineChartGravityVector;
     private boolean mIsFragmentAttached = false;
     private Renderer mRenderer;
+
+    //Miguel
+    GraphView graphX;
+    GraphView graphY;
+    GraphView graphXY;
+    private XYValue anteriorX = null;
+    private XYValue anteriorY = null;
+    private XYValue anteriorXY = null;
+    private int contador = 0;
+    private Button btn_start;
+
+    private ArrayList<String> valueAcelerometer = new ArrayList<>();
+    private ArrayList<String> valueMagnetometer = new ArrayList<>();
+    private ArrayList<String> valueGyroscopio = new ArrayList<>();
+    private ArrayList<String> valueGravity = new ArrayList<>();
 
     private ThingyListener mThingyListener = new ThingyListener() {
         float mCurrentDegree = 0.0f;
@@ -256,17 +283,35 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
 
         @Override
         public void onAccelerometerValueChangedEvent(BluetoothDevice bluetoothDevice, float x, float y, float z) {
-            addDeadReckoningEntry(x, y, z);
+            StringBuilder s = new StringBuilder();
+            s.append(x);
+            s.append(',');
+            s.append(y);
+            s.append(',');
+            s.append(z);
+            valueAcelerometer.add(s.toString());
         }
 
         @Override
         public void onGyroscopeValueChangedEvent(BluetoothDevice bluetoothDevice, float x, float y, float z) {
-
+            StringBuilder s = new StringBuilder();
+            s.append(x);
+            s.append(',');
+            s.append(y);
+            s.append(',');
+            s.append(z);
+            valueGyroscopio.add(s.toString());
         }
 
         @Override
         public void onCompassValueChangedEvent(BluetoothDevice bluetoothDevice, float x, float y, float z) {
-
+            StringBuilder s = new StringBuilder();
+            s.append(x);
+            s.append(',');
+            s.append(y);
+            s.append(',');
+            s.append(z);
+            valueMagnetometer.add(s.toString());
         }
 
         @Override
@@ -316,7 +361,20 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
 
         @Override
         public void onGravityVectorChangedEvent(BluetoothDevice bluetoothDevice, float x, float y, float z) {
-            addGravityVectorEntry(x, y, z);
+            //addGravityVectorEntry(x, y, z);
+
+            StringBuilder s = new StringBuilder();
+            s.append(x);
+            s.append(',');
+            s.append(y);
+            s.append(',');
+            s.append(z);
+            valueGravity.add(s.toString());
+
+            //Miguel
+            //mandar para minha função que basicamente subdivide os dois
+            //Log.e("Miguel change", String.valueOf(x)+" "+String.valueOf(y) + " "+ String.valueOf(z));
+            //plotarXY(x,y);
         }
 
         @Override
@@ -329,6 +387,92 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
 
         }
     };
+
+    //Miguel
+    private void plotarXY(float x, float y) {
+
+        float velocityAxis;
+        float posAxis;
+        float velocityAyis;
+        float posAyis;
+        double time = 1;
+
+        //não tem anterior
+        x = 10+x;
+        if (anteriorXY == null){
+            velocityAxis = (float) (time*x);
+            posAxis = (float) (((time*time)*x)/2);
+
+            velocityAyis = (float) (time*y);
+            posAyis = (float) (((time*time)*y)/2);
+        }else{
+            //tem anterior
+            velocityAxis = (float) (anteriorXY.getVelocityAxis() + time*x);
+            posAxis = (float) (anteriorXY.getDistanceAxis() + anteriorXY.getVelocityAxis()*time+ ((time*time)*x)/2);
+
+            velocityAyis = (float) (anteriorXY.getVelocityAyis() + time*y);
+            posAyis = (float) (anteriorXY.getDistanceAyis() + anteriorXY.getVelocityAyis()*time +  ((time*time)*y)/2);
+        }
+        //grafico real
+        XYValue valueXY = new XYValue(posAxis, posAyis, velocityAxis, velocityAyis, posAxis, posAyis);
+        anteriorXY = atualizarGraph(graphXY, valueXY, anteriorXY);
+
+        //grafico X
+        XYValue valueX = new XYValue(contador, x);
+        anteriorX = atualizarGraph(graphX, valueX, anteriorX);
+
+        //grafico Y
+        XYValue valueY = new XYValue(contador, y);
+        anteriorY = atualizarGraph(graphY, valueY, anteriorY);
+        contador++;
+    }
+
+    private XYValue atualizarGraph(GraphView graph, XYValue value, XYValue ant) {
+
+        PointsGraphSeries<DataPoint> xySeries = new PointsGraphSeries<>();
+        xySeries.setShape(PointsGraphSeries.Shape.POINT);
+        xySeries.setColor(Color.BLUE);
+        xySeries.setSize(5f);
+        xySeries.appendData(new DataPoint(value.getX(),value.getY()),true, 1000);
+
+        if (graph.getViewport().getMinY(true) > value.getY()){
+            graph.getViewport().setMinY(value.getY());
+        }
+
+        if (graph.getViewport().getMinX(true) > value.getX()){
+            graph.getViewport().setMinX(value.getX());
+        }
+
+        if (graph.getViewport().getMaxX(true) < value.getX()){
+            graph.getViewport().setMaxX(value.getX());
+        }
+
+        if (graph.getViewport().getMaxY(true) < value.getY()){
+            graph.getViewport().setMaxY(value.getY());
+        }
+
+        graph.addSeries(xySeries);
+
+        if (ant != null){
+            LineGraphSeries<DataPoint> series;
+            if(ant.getX()<value.getX()){
+                series = new LineGraphSeries<>(new DataPoint[] {
+                        new DataPoint(ant.getX(), ant.getY()),
+                        new DataPoint(value.getX(), value.getY())
+                });
+            }else{
+                series = new LineGraphSeries<>(new DataPoint[] {
+                        new DataPoint(value.getX(), value.getY()),
+                        new DataPoint(ant.getX(), ant.getY())
+                });
+            }
+            graph.addSeries(series);
+
+
+        }
+
+        return value;
+    }
 
     public static MotionServiceFragment newInstance(final BluetoothDevice device) {
         final  MotionServiceFragment fragment = new MotionServiceFragment();
@@ -347,181 +491,284 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
         if (getArguments() != null) {
             mDevice = getArguments().getParcelable(Utils.CURRENT_DEVICE);
         }
+
+
     }
 
     @Override
     public View onCreateView(@NonNull final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
-        final View rootView = inflater.inflate(R.layout.fragment_motion, container, false);
+        View rootView = inflater.inflate(R.layout.miguel_fragment, container, false);
+        boolean is_miguel = true; //jeito de manter os dois layouts
         mThingySdkManager = ThingySdkManager.getInstance();
+        enableGravityVectorNotifications(true);
+        enableRawDataNotifications(true);
+        if (is_miguel){
+            graphX = rootView.findViewById(R.id.graphMiguelX);
+            graphY = rootView.findViewById(R.id.graphMiguelY);
+            graphXY = rootView.findViewById(R.id.graphMiguelTodos);
 
-        mTapCount = rootView.findViewById(R.id.tap_count);
-        mTapDirection = rootView.findViewById(R.id.tap_direction);
-        mOrientation = rootView.findViewById(R.id.orientation);
-        mPedometerSteps = rootView.findViewById(R.id.step_count);
-        mPedometerDuration = rootView.findViewById(R.id.duration);
-        mHeading = rootView.findViewById(R.id.heading);
-        mHeadingDirection = rootView.findViewById(R.id.heading_direction);
-
-        mOrientation.setText(ThingyUtils.PORTRAIT);
-
-        mHeadingImage = rootView.findViewById(R.id.heading_image);
-        mPortraitImage = rootView.findViewById(R.id.portrait_image);
-
-        mLineChartDeadReckoning = rootView.findViewById(R.id.line_chart_dead_reckoning);
-        mLineChartGravityVector = rootView.findViewById(R.id.line_chart_gravity_vector);
-
-        mIsConnected = isConnected(mDevice);
-        if (Utils.checkIfVersionIsAboveJellyBean()) {
-            mQuaternionToolbar = rootView.findViewById(R.id.card_toolbar_euler);
-            mGlSurfaceView = rootView.findViewById(R.id.rajwali_surface);
-            mRenderer = new Renderer(getActivity());
-            mGlSurfaceView.setSurfaceRenderer(mRenderer);
-            mRenderer.setConnectionState(mIsConnected);
-            if (mDatabaseHelper.getNotificationsState(mDevice.getAddress(), DatabaseContract.ThingyDbColumns.COLUMN_NOTIFICATION_QUATERNION)) {
-                mRenderer.setNotificationEnabled(true);
-            }
-        }
-
-        if (mQuaternionToolbar != null) {
-            mQuaternionToolbar.inflateMenu(R.menu.quaternion_card_menu);
-
-            if (mDevice != null) {
-                updateQuaternionCardOptionsMenu(mQuaternionToolbar.getMenu());
-            }
-
-            mQuaternionToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+            btn_start = rootView.findViewById(R.id.button_Miguel);
+            btn_start.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    final int id = item.getItemId();
-                    switch (id) {
-                        case R.id.action_quaternion_angles_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableQuaternionNotifications(item.isChecked());
-                            break;
+                public void onClick(View view) {
+
+                    enableGravityVectorNotifications(false);
+                    enableRawDataNotifications(false);
+
+                    Toast.makeText(getContext(), String.valueOf(valueAcelerometer.size()), Toast.LENGTH_SHORT).show();
+                    try {
+                        wirte(valueGyroscopio, valueAcelerometer, valueMagnetometer, "DadosStrainghtLine2.txt");
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    return true;
+                    /*
+                    if (btn_start.getText().toString().equals("Start")){
+
+                        btn_start.setText("Pause");
+                        //enableGravityVectorNotifications(true);
+                    }else{
+                        btn_start.setText("Start");
+                        //enableGravityVectorNotifications(false);
+                    }*/
                 }
             });
-            loadFeatureDiscoverySequence();
-        }
 
-        final Toolbar motionToolbar = rootView.findViewById(R.id.card_toolbar_motion);
-        if (motionToolbar != null) {
-            motionToolbar.inflateMenu(R.menu.motion_card_menu);
+            initGraphs(graphX);
+            initGraphs(graphY);
+            initGraphs(graphXY);
+            //View mine = inflater.inflate(R.layout.fragment_motion, container, false);
+            //View rootView = view.findViewById(R.id.view_layout);
+            //rootView = mine;
+        }else{
+            rootView = inflater.inflate(R.layout.fragment_motion, container, false);
+            //mLineChartGravityVector = rootView.findViewById(R.id.line_chart_gravity_vector_modify); // voltar ao normal
+            mTapCount = rootView.findViewById(R.id.tap_count);
+            mTapDirection = rootView.findViewById(R.id.tap_direction);
+            mOrientation = rootView.findViewById(R.id.orientation);
+            mPedometerSteps = rootView.findViewById(R.id.step_count);
+            mPedometerDuration = rootView.findViewById(R.id.duration);
+            mHeading = rootView.findViewById(R.id.heading);
+            mHeadingDirection = rootView.findViewById(R.id.heading_direction);
 
-            if (mDevice != null) {
-                updateMotionCardOptionsMenu(motionToolbar.getMenu());
+            mOrientation.setText(ThingyUtils.PORTRAIT);
+
+            mHeadingImage = rootView.findViewById(R.id.heading_image);
+            mPortraitImage = rootView.findViewById(R.id.portrait_image);
+
+            mLineChartDeadReckoning = rootView.findViewById(R.id.line_chart_dead_reckoning);
+
+
+
+            //graphY = rootView.findViewById(R.id.graphMiguelY);
+
+
+
+
+            //initGraphs(graphY);
+            //initGraphs(graphX);
+
+            mIsConnected = isConnected(mDevice);
+            if (Utils.checkIfVersionIsAboveJellyBean()) {
+                mQuaternionToolbar = rootView.findViewById(R.id.card_toolbar_euler);
+                mGlSurfaceView = rootView.findViewById(R.id.rajwali_surface);
+                mRenderer = new Renderer(getActivity());
+                mGlSurfaceView.setSurfaceRenderer(mRenderer);
+                mRenderer.setConnectionState(mIsConnected);
+                if (mDatabaseHelper.getNotificationsState(mDevice.getAddress(), DatabaseContract.ThingyDbColumns.COLUMN_NOTIFICATION_QUATERNION)) {
+                    mRenderer.setNotificationEnabled(true);
+                }
             }
 
-            motionToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    final int id = item.getItemId();
-                    switch (id) {
-                        case R.id.action_about:
-                            final MotionServiceInfoDialogFragment info = MotionServiceInfoDialogFragment.newInstance();
-                            info.show(getChildFragmentManager(), null);
-                            break;
-                        case R.id.action_pedometer_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enablePedometerNotifications(item.isChecked());
-                            break;
-                        case R.id.action_tap_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableTapNotifications(item.isChecked());
-                            break;
-                        case R.id.action_heading_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableHeadingNotifications(item.isChecked());
-                            break;
-                        case R.id.action_orientation_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableOrientationNotifications(item.isChecked());
-                            break;
-                    }
-                    return true;
+            if (mQuaternionToolbar != null) {
+                mQuaternionToolbar.inflateMenu(R.menu.quaternion_card_menu);
+
+                if (mDevice != null) {
+                    updateQuaternionCardOptionsMenu(mQuaternionToolbar.getMenu());
                 }
-            });
-        }
 
-        final Toolbar reckoningToolbar = rootView.findViewById(R.id.card_toolbar_reckoning);
-        if (reckoningToolbar != null) {
-            reckoningToolbar.inflateMenu(R.menu.reckoning_card_menu);
+                mQuaternionToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
 
-            if (mDevice != null) {
-                updateReckoningCardOptionsMenu(reckoningToolbar.getMenu());
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        final int id = item.getItemId();
+                        switch (id) {
+                            case R.id.action_quaternion_angles_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableQuaternionNotifications(item.isChecked());
+                                break;
+                        }
+                        return true;
+                    }
+                });
+                loadFeatureDiscoverySequence();
             }
 
-            reckoningToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    final int id = item.getItemId();
-                    switch (id) {
-                        case R.id.action_dead_reckoning_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableRawDataNotifications(item.isChecked());
-                            break;
-                    }
-                    return true;
+            final Toolbar motionToolbar = rootView.findViewById(R.id.card_toolbar_motion);
+            if (motionToolbar != null) {
+                motionToolbar.inflateMenu(R.menu.motion_card_menu);
+
+                if (mDevice != null) {
+                    updateMotionCardOptionsMenu(motionToolbar.getMenu());
                 }
-            });
-        }
 
-        prepareDeadReckoningChart();
-
-        final Toolbar gravityToolbar = rootView.findViewById(R.id.card_toolbar_gravity);
-        if (gravityToolbar != null) {
-            gravityToolbar.inflateMenu(R.menu.gravity_card_menu);
-
-            if (mDevice != null) {
-                updateGravityCardOptionsMenu(gravityToolbar.getMenu());
+                motionToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        final int id = item.getItemId();
+                        switch (id) {
+                            case R.id.action_about:
+                                final MotionServiceInfoDialogFragment info = MotionServiceInfoDialogFragment.newInstance();
+                                info.show(getChildFragmentManager(), null);
+                                break;
+                            case R.id.action_pedometer_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enablePedometerNotifications(item.isChecked());
+                                break;
+                            case R.id.action_tap_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableTapNotifications(item.isChecked());
+                                break;
+                            case R.id.action_heading_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableHeadingNotifications(item.isChecked());
+                                break;
+                            case R.id.action_orientation_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableOrientationNotifications(item.isChecked());
+                                break;
+                        }
+                        return true;
+                    }
+                });
             }
 
-            gravityToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    final int id = item.getItemId();
-                    switch (id) {
-                        case R.id.action_gravity_vector_notification:
-                            if (item.isChecked()) {
-                                item.setChecked(false);
-                            } else {
-                                item.setChecked(true);
-                            }
-                            enableGravityVectorNotifications(item.isChecked());
-                            break;
-                    }
-                    return true;
-                }
-            });
-        }
+            final Toolbar reckoningToolbar = rootView.findViewById(R.id.card_toolbar_reckoning);
+            if (reckoningToolbar != null) {
+                reckoningToolbar.inflateMenu(R.menu.reckoning_card_menu);
 
-        prepareGravityVectorChart();
+                if (mDevice != null) {
+                    updateReckoningCardOptionsMenu(reckoningToolbar.getMenu());
+                }
+
+                reckoningToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        final int id = item.getItemId();
+                        switch (id) {
+                            case R.id.action_dead_reckoning_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableRawDataNotifications(item.isChecked());
+                                break;
+                        }
+                        return true;
+                    }
+                });
+            }
+
+            prepareDeadReckoningChart();
+
+            final Toolbar gravityToolbar = rootView.findViewById(R.id.card_toolbar_gravity);
+
+            if (gravityToolbar != null) {
+                gravityToolbar.inflateMenu(R.menu.gravity_card_menu);
+
+                if (mDevice != null) {
+                    updateGravityCardOptionsMenu(gravityToolbar.getMenu());
+                }
+
+                gravityToolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        final int id = item.getItemId();
+                        switch (id) {
+                            case R.id.action_gravity_vector_notification:
+                                if (item.isChecked()) {
+                                    item.setChecked(false);
+                                } else {
+                                    item.setChecked(true);
+                                }
+                                enableGravityVectorNotifications(item.isChecked());
+                                break;
+                        }
+                        return true;
+                    }
+                });
+            }
+
+            prepareGravityVectorChart();
+
+        }
         return rootView;
+    }
+
+    // função que recebe os dados e salva em um arquivo no armazenamento interno do aplicativo
+    public void wirte(ArrayList<String> lista1, ArrayList<String> lista2, ArrayList<String> lista3, String inFile) throws IOException {
+        File internalStorageDir = getActivity().getFilesDir();
+        File alice = new File(internalStorageDir, inFile);
+        // Cria o output stream do arquivo
+        FileOutputStream fos = new FileOutputStream(alice);
+
+        int size1 = Math.min(lista1.size(), lista2.size());
+        int size_oficial = Math.min(lista3.size(), size1);
+
+        // Escreve uma linha no arquivo
+        for(int x=0; x<size_oficial;x++) {
+            //words.get(0) é igual a "nome_da_sequencia;nivel_dificultade;sequencia"
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(x);
+            stringBuilder.append(",");
+            stringBuilder.append(lista1.get(x));
+            stringBuilder.append(",");
+            stringBuilder.append(lista2.get(x));
+            stringBuilder.append(",");
+            stringBuilder.append(lista3.get(x));
+            String word = stringBuilder.toString() + "\n";
+            fos.write(word.getBytes());
+        }
+        // Fecha o output stream do arquivo
+        fos.close();
+        Log.v("File", alice.getAbsolutePath());
+    }
+
+    //Miguel
+    private void initGraphs(GraphView graphExample) {
+        //set Scrollable and Scaleable
+        graphExample.getViewport().setScalable(true);
+        graphExample.getViewport().setScalableY(true);
+
+        //set manual x bounds
+        graphExample.getViewport().setYAxisBoundsManual(true);
+        graphExample.getViewport().setMaxY(40);
+        graphExample.getViewport().setMinY(-10);
+
+        //set manual y bounds
+        graphExample.getViewport().setXAxisBoundsManual(true);
+        graphExample.getViewport().setMaxX(40);
+        graphExample.getViewport().setMinX(-40);
     }
 
     @Override
@@ -703,7 +950,7 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
         if (!mLineChartGravityVector.isEmpty()) {
             mLineChartGravityVector.clearValues();
         }
-        mLineChartGravityVector.setDescription(getString(R.string.title_gravity_vector));
+        mLineChartGravityVector.setDescription("Merda");
         mLineChartGravityVector.setTouchEnabled(true);
         mLineChartGravityVector.setVisibleXRangeMinimum(5);
         mLineChartGravityVector.setVisibleXRangeMaximum(5);

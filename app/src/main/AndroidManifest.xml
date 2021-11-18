@@ -40,18 +40,22 @@
             android:name=".LoginActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.TranslucentStatusBar">
+
+        </activity>
+        <activity android:name=".WelcomeActivity">
+
+        </activity>
+        <activity
+            android:name=".configuration.InitialConfigurationActivity"
+            android:label="@string/initial_configuration"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".WelcomeActivity" />
-        <activity
-            android:name=".configuration.InitialConfigurationActivity"
-            android:label="@string/initial_configuration"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTask"
