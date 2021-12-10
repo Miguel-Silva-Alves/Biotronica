@@ -513,6 +513,7 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
             btn_start.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    quantidade_vezes += 1;
 
                     if (btn_start.getText().toString().equals("Start")){
 
