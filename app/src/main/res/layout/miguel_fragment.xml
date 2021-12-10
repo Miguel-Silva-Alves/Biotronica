@@ -12,7 +12,7 @@
             android:id="@+id/button_Miguel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start" />
+            android:text="Stop" />
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/card_toolbar_gravity"

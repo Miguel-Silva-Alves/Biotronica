@@ -143,6 +143,8 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
     private ArrayList<String> valueGyroscopio = new ArrayList<>();
     private ArrayList<String> valueGravity = new ArrayList<>();
 
+    private int quantidade_vezes = 1;
+
     private ThingyListener mThingyListener = new ThingyListener() {
         float mCurrentDegree = 0.0f;
         private float mHeadingDegrees;
@@ -512,24 +514,29 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
                 @Override
                 public void onClick(View view) {
 
-                    enableGravityVectorNotifications(false);
-                    enableRawDataNotifications(false);
-
-                    Toast.makeText(getContext(), String.valueOf(valueAcelerometer.size()), Toast.LENGTH_SHORT).show();
-                    try {
-                        wirte(valueGyroscopio, valueAcelerometer, valueMagnetometer, "DadosStrainghtLine2.txt");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    /*
                     if (btn_start.getText().toString().equals("Start")){
 
-                        btn_start.setText("Pause");
+                        btn_start.setText("Stop");
                         //enableGravityVectorNotifications(true);
+                        enableGravityVectorNotifications(true);
+                        enableRawDataNotifications(true);
                     }else{
                         btn_start.setText("Start");
-                        //enableGravityVectorNotifications(false);
-                    }*/
+                        enableGravityVectorNotifications(false);
+                        enableRawDataNotifications(false);
+
+                        Toast.makeText(getContext(), String.valueOf(valueAcelerometer.size()), Toast.LENGTH_SHORT).show();
+                        try {
+                            wirte(valueGyroscopio, valueAcelerometer, valueMagnetometer, "DadosStrainghtLineMulti"+ String.valueOf(quantidade_vezes) +".txt");
+                            valueAcelerometer = new ArrayList<>();
+                            valueGravity = new ArrayList<>();
+                            valueGyroscopio = new ArrayList<>();
+                            valueMagnetometer = new ArrayList<>();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                 }
             });
 
@@ -751,7 +758,7 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
         }
         // Fecha o output stream do arquivo
         fos.close();
-        Log.v("File", alice.getAbsolutePath());
+        Log.v("FilePath", alice.getAbsolutePath());
     }
 
     //Miguel
