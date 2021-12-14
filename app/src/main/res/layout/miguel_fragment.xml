@@ -36,49 +36,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/card_toolbar_gravity" />
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/card_toolbar_gravity2"
+        <TextView
+            android:id="@+id/tempo"
             android:layout_width="match_parent"
-            android:layout_height="?actionBarSize"
-            android:background="@android:color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/graphMiguelTodos"
-            app:logo="@drawable/ic_apple"
-            app:popupTheme="@style/ActionBarPopupThemeOverlay"
-            app:title="Grafico X"
-            app:titleMarginStart="@dimen/card_view_toolbar_title_margin"
-            app:titleTextAppearance="@style/Widget.Toolbar" />
+            android:layout_height="wrap_content"
+            android:text="TextView" />
 
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graphMiguelX"
+        <TextView
+            android:id="@+id/acelerometro_view"
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/card_toolbar_gravity" />
+            android:layout_height="wrap_content"
+            android:text="TextView" />
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/card_toolbar_gravity3"
+        <TextView
+            android:id="@+id/giroscopio_view"
             android:layout_width="match_parent"
-            android:layout_height="?actionBarSize"
-            android:background="@android:color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/graphMiguelTodos"
-            app:logo="@drawable/ic_apple"
-            app:popupTheme="@style/ActionBarPopupThemeOverlay"
-            app:title="Grafico Y"
-            app:titleMarginStart="@dimen/card_view_toolbar_title_margin"
-            app:titleTextAppearance="@style/Widget.Toolbar" />
-
-        <com.jjoe64.graphview.GraphView
-            android:id="@+id/graphMiguelY"
-            android:layout_width="match_parent"
-            android:layout_height="250dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/card_toolbar_gravity" />
+            android:layout_height="wrap_content"
+            android:text="TextView" />
 
     </LinearLayout>
 

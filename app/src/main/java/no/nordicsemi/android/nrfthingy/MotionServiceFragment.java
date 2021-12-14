@@ -44,6 +44,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.SpannableString;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -113,6 +114,8 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
     private TextView mPedometerDuration;
     private TextView mHeadingDirection;
 
+    private TextView tempo, acel, giro;
+
     private ImageView mPortraitImage;
 
     private RajawaliSurfaceView mGlSurfaceView;
@@ -137,6 +140,9 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
     private XYValue anteriorXY = null;
     private int contador = 0;
     private Button btn_start;
+    private static Handler handler;
+    private int temporizador = 1;
+
 
     private ArrayList<String> valueAcelerometer = new ArrayList<>();
     private ArrayList<String> valueMagnetometer = new ArrayList<>();
@@ -292,6 +298,7 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
             s.append(',');
             s.append(z);
             valueAcelerometer.add(s.toString());
+            acel.setText("Acelerometro:"+String.valueOf(valueAcelerometer.size()));
         }
 
         @Override
@@ -303,6 +310,7 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
             s.append(',');
             s.append(z);
             valueGyroscopio.add(s.toString());
+            giro.setText("Giro" + String.valueOf(valueGyroscopio.size()));
         }
 
         @Override
@@ -500,13 +508,16 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
     @Override
     public View onCreateView(@NonNull final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.miguel_fragment, container, false);
+        handler = new Handler();
+        handler.postDelayed(runnable, 1000);
         boolean is_miguel = true; //jeito de manter os dois layouts
         mThingySdkManager = ThingySdkManager.getInstance();
         enableGravityVectorNotifications(true);
         enableRawDataNotifications(true);
         if (is_miguel){
-            graphX = rootView.findViewById(R.id.graphMiguelX);
-            graphY = rootView.findViewById(R.id.graphMiguelY);
+            acel = rootView.findViewById(R.id.acelerometro_view);
+            giro = rootView.findViewById(R.id.giroscopio_view);
+            tempo = rootView.findViewById(R.id.tempo);
             graphXY = rootView.findViewById(R.id.graphMiguelTodos);
 
             btn_start = rootView.findViewById(R.id.button_Miguel);
@@ -516,34 +527,42 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
                     quantidade_vezes += 1;
 
                     if (btn_start.getText().toString().equals("Start")){
+                        handler = new Handler();
+                        handler.postDelayed(runnable, 1000);
 
-                        btn_start.setText("Stop");
                         //enableGravityVectorNotifications(true);
                         enableGravityVectorNotifications(true);
                         enableRawDataNotifications(true);
                     }else{
+                        handler.removeMessages(0);
                         btn_start.setText("Start");
                         enableGravityVectorNotifications(false);
                         enableRawDataNotifications(false);
 
                         Toast.makeText(getContext(), String.valueOf(valueAcelerometer.size()), Toast.LENGTH_SHORT).show();
                         try {
-                            wirte(valueGyroscopio, valueAcelerometer, valueMagnetometer, "DadosStrainghtLineMulti"+ String.valueOf(quantidade_vezes) +".txt");
+                            wirte(valueGyroscopio, valueAcelerometer, valueMagnetometer, "DadosStrainghtLineMulti"+ String.valueOf(quantidade_vezes) +"teste1112.txt");
                             valueAcelerometer = new ArrayList<>();
                             valueGravity = new ArrayList<>();
                             valueGyroscopio = new ArrayList<>();
                             valueMagnetometer = new ArrayList<>();
+
+
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        temporizador = 0;
+                        tempo.setText("Tempo: ");
+                        acel.setText("Acelerometro:"+String.valueOf(valueAcelerometer.size()));
+                        giro.setText("Giro" + String.valueOf(valueGyroscopio.size()));
                     }
 
                 }
             });
 
-            initGraphs(graphX);
-            initGraphs(graphY);
-            initGraphs(graphXY);
+            //initGraphs(graphX);
+            //initGraphs(graphY);
+            //initGraphs(graphXY);
             //View mine = inflater.inflate(R.layout.fragment_motion, container, false);
             //View rootView = view.findViewById(R.id.view_layout);
             //rootView = mine;
@@ -726,12 +745,20 @@ public class MotionServiceFragment extends Fragment implements ScannerFragmentLi
                     }
                 });
             }
-
             prepareGravityVectorChart();
-
         }
         return rootView;
     }
+
+    //atualiza o time a cada segundo
+    private final Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            tempo.setText("Tempo: " + String.valueOf(temporizador));
+            temporizador+=1;
+            handler.postDelayed(runnable, 1000);
+        }
+    };
 
     // função que recebe os dados e salva em um arquivo no armazenamento interno do aplicativo
     public void wirte(ArrayList<String> lista1, ArrayList<String> lista2, ArrayList<String> lista3, String inFile) throws IOException {
